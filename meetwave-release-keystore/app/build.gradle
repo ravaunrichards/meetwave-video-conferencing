@@ -1,0 +1,72 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Release signing is supplied entirely through environment variables so that
+// no keystore path or password is ever written into source, gradle files,
+// logs, or git history.
+def envStoreFile = System.getenv('MEETWAVE_KEYSTORE')
+def envStorePass = System.getenv('MEETWAVE_STORE_PASSWORD')
+def envKeyAlias  = System.getenv('MEETWAVE_KEY_ALIAS')
+def envKeyPass   = System.getenv('MEETWAVE_KEY_PASSWORD')
+def hasReleaseSigning = envStoreFile != null && file(envStoreFile).exists() &&
+        envStorePass != null && envKeyAlias != null && envKeyPass != null
+
+// Optional build-time default server URL (leave empty to use the in-app setting / bundled UI).
+def serverUrl = System.getenv('MEETWAVE_SERVER_URL') ?: ''
+
+android {
+    namespace 'com.meetwave.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.meetwave.app'
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName '1.0.0'
+        buildConfigField 'String', 'MEETWAVE_SERVER_URL', "\"${serverUrl}\""
+    }
+
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(envStoreFile)
+                storePassword envStorePass
+                keyAlias envKeyAlias
+                keyPassword envKeyPass
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            debuggable false
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    packagingOptions {
+        resources {
+            excludes += ['META-INF/*.kotlin_module']
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.8.0'
+}
