@@ -30,7 +30,7 @@ android {
         targetSdk 34
         versionCode meetWaveVersionCode
         versionName meetWaveVersionName
-        buildConfigField 'String', 'MEETWAVE_SERVER_URL', "\"\${serverUrl}\""
+        buildConfigField 'String', 'MEETWAVE_SERVER_URL', "\"${serverUrl}\""
     }
 
     signingConfigs {
