@@ -29,7 +29,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
 
       - name: Install server dependencies
         run: npm install --no-audit --no-fund
@@ -54,12 +53,14 @@ jobs:
         shell: bash
         env:
           KEYSTORE_BASE64: ${{ secrets.MEETWAVE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.MEETWAVE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.MEETWAVE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.MEETWAVE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [[ -n "$KEYSTORE_BASE64" ]]; then
-            if [[ -z "${{ secrets.MEETWAVE_STORE_PASSWORD }}" ||
-                  -z "${{ secrets.MEETWAVE_KEY_ALIAS }}" ||
-                  -z "${{ secrets.MEETWAVE_KEY_PASSWORD }}" ]]; then
+          if [[ -n "${KEYSTORE_BASE64}${STORE_PASSWORD}${KEY_ALIAS}${KEY_PASSWORD}" ]]; then
+            if [[ -z "$KEYSTORE_BASE64" || -z "$STORE_PASSWORD" ||
+                  -z "$KEY_ALIAS" || -z "$KEY_PASSWORD" ]]; then
               echo "Signing secrets are incomplete. Configure all four MeetWave signing secrets." >&2
               exit 1
             fi
@@ -75,6 +76,7 @@ jobs:
 
       - name: Build signed release APK
         if: steps.signing.outputs.release_signing == 'true'
+        working-directory: meetwave-release-keystore
         env:
           MEETWAVE_STORE_PASSWORD: ${{ secrets.MEETWAVE_STORE_PASSWORD }}
           MEETWAVE_KEY_ALIAS: ${{ secrets.MEETWAVE_KEY_ALIAS }}
@@ -83,18 +85,18 @@ jobs:
           set -euo pipefail
           chmod +x ./gradlew
           ./gradlew --no-daemon clean assembleRelease
-          mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk dist/meetwave-video-conferencing.apk
+          mkdir -p ../dist
+          cp app/build/outputs/apk/release/app-release.apk ../dist/meetwave-video-conferencing.apk
 
       - name: Build debug APK when release signing is not configured
         if: steps.signing.outputs.release_signing != 'true'
+        working-directory: meetwave-release-keystore
         run: |
           set -euo pipefail
           chmod +x ./gradlew
           ./gradlew --no-daemon clean assembleDebug
-          mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/meetwave-video-conferencing-debug.apk
-          mv dist/meetwave-video-conferencing-debug.apk dist/meetwave-video-conferencing.apk
+          mkdir -p ../dist
+          cp app/build/outputs/apk/debug/app-debug.apk ../dist/meetwave-video-conferencing.apk
 
       - name: Verify APK and create checksum
         run: |
@@ -104,7 +106,8 @@ jobs:
           test -n "$APKSIGNER"
           "$APKSIGNER" verify --verbose dist/meetwave-video-conferencing.apk
           sha256sum dist/meetwave-video-conferencing.apk > dist/meetwave-video-conferencing.apk.sha256
-          printf 'commit=%s\nbuild=%s\nserver=%s\n'             "$GITHUB_SHA" "$GITHUB_RUN_NUMBER" "$MEETWAVE_SERVER_URL" > dist/BUILD-INFO.txt
+          printf 'commit=%s\nbuild=%s\nserver=%s\n' \
+            "$GITHUB_SHA" "$GITHUB_RUN_NUMBER" "$MEETWAVE_SERVER_URL" > dist/BUILD-INFO.txt
 
       - name: Upload Android build artifact
         uses: actions/upload-artifact@v4

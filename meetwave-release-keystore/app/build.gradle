@@ -14,8 +14,7 @@ def hasReleaseSigning = envStoreFile != null && file(envStoreFile).exists() &&
 def serverUrl = System.getenv('MEETWAVE_SERVER_URL') ?:
         'https://meetwave-video-conferencing.onrender.com'
 
-// Use a new, higher version code for every CI build so Play Store / Android
-// package update checks never treat a new APK as an older release.
+// Use a higher version code for every CI build.
 def runNumber = (System.getenv('GITHUB_RUN_NUMBER') ?:
         System.getenv('MEETWAVE_BUILD_NUMBER') ?: '2').toInteger()
 def meetWaveVersionCode = Math.max(2, runNumber + 1)
