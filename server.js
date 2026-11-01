@@ -61,5 +61,7 @@ wss.on('connection', ws => {
     if (!room.size) rooms.delete(ws.roomId);
   });
 });
-server.listen(PORT, () => console.log(`MeetWave listening on http://localhost:${PORT}`));
+if (require.main === module) {
+  server.listen(PORT, () => console.log(`MeetWave listening on http://localhost:${PORT}`));
+}
 module.exports = { app, server, rooms };
