@@ -2,6 +2,7 @@ package com.meetwave.app;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.pm.ActivityInfo;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -15,6 +16,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.webkit.PermissionRequest;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -79,9 +81,25 @@ public class MainActivity extends Activity {
                 .addPathHandler("/", new WebViewAssetLoader.AssetsPathHandler(this))
                 .build();
 
+        webView.addJavascriptInterface(new MeetWaveOrientationBridge(), "MeetWaveNative");
         configureWebView();
         requestMediaPermissions();
         loadConfiguredTarget();
+    }
+
+    /** Allows the trusted MeetWave web UI to use the full landscape display for calls. */
+    private final class MeetWaveOrientationBridge {
+        @JavascriptInterface
+        public void enterLandscape() {
+            runOnUiThread(() -> setRequestedOrientation(
+                    ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE));
+        }
+
+        @JavascriptInterface
+        public void exitLandscape() {
+            runOnUiThread(() -> setRequestedOrientation(
+                    ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED));
+        }
     }
 
     private void configureWebView() {
